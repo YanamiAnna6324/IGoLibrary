@@ -16,7 +16,9 @@ public sealed class CloudflaredPackagingTests
 
         Assert.Equal("2026.7.0", rootElement.GetProperty("version").GetString());
         var assets = rootElement.GetProperty("assets");
-        Assert.Equal(["osx-arm64", "osx-x64", "win-x64"], assets.EnumerateObject().Select(x => x.Name).Order().ToArray());
+        Assert.Equal(
+            ["linux-arm64", "linux-x64", "osx-arm64", "osx-x64", "win-x64"],
+            assets.EnumerateObject().Select(x => x.Name).Order().ToArray());
         foreach (var asset in assets.EnumerateObject())
         {
             Assert.Matches("^[0-9a-f]{64}$", asset.Value.GetProperty("sha256").GetString());
@@ -29,6 +31,8 @@ public sealed class CloudflaredPackagingTests
         Assert.Equal(54168384, assets.GetProperty("win-x64").GetProperty("size").GetInt64());
         Assert.Equal(20841929, assets.GetProperty("osx-x64").GetProperty("size").GetInt64());
         Assert.Equal(18957597, assets.GetProperty("osx-arm64").GetProperty("size").GetInt64());
+        Assert.Equal(39252488, assets.GetProperty("linux-x64").GetProperty("size").GetInt64());
+        Assert.Equal(36982876, assets.GetProperty("linux-arm64").GetProperty("size").GetInt64());
     }
 
     [Fact]

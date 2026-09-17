@@ -43,6 +43,11 @@ internal static class SystemIdleSleepInhibitorFactory
             return new MacSystemIdleSleepInhibitor();
         }
 
+        if (OperatingSystem.IsLinux())
+        {
+            return new LinuxSystemIdleSleepInhibitor();
+        }
+
         return new UnsupportedSystemIdleSleepInhibitor();
     }
 }

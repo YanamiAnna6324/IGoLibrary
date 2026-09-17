@@ -89,7 +89,8 @@ internal sealed class CloudflaredAssetCatalog
             !IsSha256(entry.ExecutableSha256) ||
             entry.ArchiveType is not ("binary" or "tgz") ||
             rid == "win-x64" && entry.ArchiveType != "binary" ||
-            rid.StartsWith("osx-", StringComparison.Ordinal) && entry.ArchiveType != "tgz")
+            rid.StartsWith("osx-", StringComparison.Ordinal) && entry.ArchiveType != "tgz" ||
+            rid.StartsWith("linux-", StringComparison.Ordinal) && entry.ArchiveType != "binary")
         {
             throw new InvalidDataException($"cloudflared 资产清单中的 {rid} 条目无效");
         }
@@ -113,6 +114,17 @@ internal sealed class CloudflaredAssetCatalog
                 Architecture.Arm64 => "osx-arm64",
                 _ => throw new PlatformNotSupportedException(
                     $"当前 macOS 架构不支持自动下载 cloudflared：{RuntimeInformation.ProcessArchitecture}")
+            };
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => "linux-x64",
+                Architecture.Arm64 => "linux-arm64",
+                _ => throw new PlatformNotSupportedException(
+                    $"当前 Linux 架构不支持自动下载 cloudflared：{RuntimeInformation.ProcessArchitecture}")
             };
         }
 

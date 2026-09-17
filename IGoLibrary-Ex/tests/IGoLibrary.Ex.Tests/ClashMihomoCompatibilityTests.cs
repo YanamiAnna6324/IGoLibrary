@@ -39,6 +39,12 @@ public sealed class ClashMihomoCompatibilityTests
             out var endpoint,
             out var secret);
 
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.False(success);
+            return;
+        }
+
         Assert.True(success);
         var pipe = Assert.IsType<MihomoControllerEndpoint.WindowsNamedPipe>(endpoint);
         Assert.Equal("verge-mihomo", pipe.PipeName);

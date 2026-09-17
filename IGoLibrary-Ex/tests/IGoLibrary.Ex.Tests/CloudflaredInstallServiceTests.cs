@@ -445,6 +445,31 @@ public sealed class CloudflaredInstallServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Extractor_BinarySetsUnixExecutableMode()
+    {
+        var extractor = new CloudflaredExtractor(NullLogger<CloudflaredExtractor>.Instance);
+        var executable = "linux-cloudflared"u8.ToArray();
+        Directory.CreateDirectory(_root);
+        var payload = Path.Combine(_root, "cloudflared-linux-amd64");
+        var destination = Path.Combine(_root, "cloudflared");
+        await File.WriteAllBytesAsync(payload, executable);
+
+        await extractor.PrepareExecutableAsync(
+            Descriptor(executable, "binary", payload),
+            payload,
+            destination);
+
+        Assert.Equal(executable, await File.ReadAllBytesAsync(destination));
+        if (!OperatingSystem.IsWindows())
+        {
+            var mode = File.GetUnixFileMode(destination);
+            Assert.True(mode.HasFlag(UnixFileMode.UserExecute));
+            Assert.True(mode.HasFlag(UnixFileMode.GroupExecute));
+            Assert.True(mode.HasFlag(UnixFileMode.OtherExecute));
+        }
+    }
+
+    [Fact]
     public async Task Extractor_TgzAcceptsSingleCloudflaredFileAndRejectsExtraEntry()
     {
         var extractor = new CloudflaredExtractor(NullLogger<CloudflaredExtractor>.Instance);

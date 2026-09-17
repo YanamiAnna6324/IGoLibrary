@@ -151,6 +151,10 @@
   <Application.Styles>
     <FluentTheme />
     <semi:SemiTheme Locale="zh-CN" />
+    <Style Selector="Window">
+      <Setter Property="FontFamily"
+              Value="avares://Avalonia.Fonts.Inter/Assets#Inter, Noto Sans SC, Noto Sans CJK SC, Microsoft YaHei UI, PingFang SC, sans-serif" />
+    </Style>
     <Style Selector="Button">
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="16,12" />

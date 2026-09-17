@@ -226,6 +226,120 @@ public sealed class SystemIdleSleepInhibitorTests
             platformApi.ReleasedStrings);
     }
 
+    [Fact]
+    public void LinuxInhibitor_StartsOneProcessAndStopsIt()
+    {
+        var factory = new RecordingLinuxSleepInhibitProcessFactory();
+        using var inhibitor = new LinuxSystemIdleSleepInhibitor(factory);
+
+        inhibitor.Activate("测试原因");
+        inhibitor.Activate("不会重复申请");
+        inhibitor.Deactivate();
+        inhibitor.Deactivate();
+
+        Assert.False(inhibitor.IsActive);
+        Assert.Equal(["测试原因"], factory.Reasons);
+        Assert.Equal(1, factory.Process.StopCalls);
+        Assert.Equal(1, factory.Process.DisposeCalls);
+    }
+
+    [Fact]
+    public void LinuxInhibitor_StopFailureRetainsActiveProcessForRetry()
+    {
+        var factory = new RecordingLinuxSleepInhibitProcessFactory();
+        factory.Process.StopException = new IOException("stop failed");
+        using var inhibitor = new LinuxSystemIdleSleepInhibitor(factory);
+        inhibitor.Activate("测试原因");
+
+        var error = Assert.Throws<SystemSleepInhibitorException>(inhibitor.Deactivate);
+
+        Assert.Equal("systemd-inhibit stop", error.Operation);
+        Assert.True(inhibitor.IsActive);
+        factory.Process.StopException = null;
+        inhibitor.Deactivate();
+        Assert.False(inhibitor.IsActive);
+        Assert.Equal(2, factory.Process.StopCalls);
+    }
+
+    [Fact]
+    public void LinuxInhibitor_DisposeReportsCleanupFailure()
+    {
+        var factory = new RecordingLinuxSleepInhibitProcessFactory();
+        factory.Process.StopException = new IOException("cleanup failed");
+        var inhibitor = new LinuxSystemIdleSleepInhibitor(factory);
+        var failures = new List<SystemSleepInhibitorException>();
+        inhibitor.CleanupFailed += (_, exception) => failures.Add(exception);
+        inhibitor.Activate("测试原因");
+
+        inhibitor.Dispose();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal("systemd-inhibit cleanup", failure.Operation);
+        Assert.Equal(1, factory.Process.DisposeCalls);
+    }
+
+    [Fact]
+    public void LinuxProcessFactory_FindsExecutableOnPath()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"sleep-inhibitor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var executable = Path.Combine(root, "systemd-inhibit");
+            File.WriteAllText(executable, string.Empty);
+
+            Assert.Equal(
+                executable,
+                LinuxSleepInhibitProcessFactory.FindExecutableOnPath(
+                    "systemd-inhibit",
+                    string.Join(Path.PathSeparator, "/missing", root)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private sealed class RecordingLinuxSleepInhibitProcessFactory : ILinuxSleepInhibitProcessFactory
+    {
+        public RecordingLinuxSleepInhibitProcess Process { get; } = new();
+
+        public List<string> Reasons { get; } = [];
+
+        public bool IsSupported => true;
+
+        public ILinuxSleepInhibitProcess Start(string reason)
+        {
+            Reasons.Add(reason);
+            Process.HasExited = false;
+            return Process;
+        }
+    }
+
+    private sealed class RecordingLinuxSleepInhibitProcess : ILinuxSleepInhibitProcess
+    {
+        public bool HasExited { get; set; }
+
+        public Exception? StopException { get; set; }
+
+        public int StopCalls { get; private set; }
+
+        public int DisposeCalls { get; private set; }
+
+        public void Stop()
+        {
+            StopCalls++;
+            if (StopException is not null)
+            {
+                throw StopException;
+            }
+
+            HasExited = true;
+        }
+
+        public void Dispose() => DisposeCalls++;
+    }
+
     private sealed class RecordingWindowsPowerRequestPlatformApi : IWindowsPowerRequestPlatformApi
     {
         public nint RawHandle { get; set; } = 123;

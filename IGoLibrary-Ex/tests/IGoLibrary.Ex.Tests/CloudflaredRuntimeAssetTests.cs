@@ -15,6 +15,12 @@ public sealed class CloudflaredRuntimeAssetTests
     [InlineData("osx-arm64", "cloudflared", "tgz", 18957597, 38388400,
         "276f4ae3119c88d1708b0f884a35a1c87d9ae459b0dab6313f2daddbddab2bec",
         "cd33944f6ce65e240942d986932bc96bde8641ecefcd52c1ae5dc21f0bcffb04")]
+    [InlineData("linux-x64", "cloudflared", "binary", 39252488, 39252488,
+        "434a04eb237e07d3d4146fc44acdbb411260a94fcb01764f454abe38a09503f3",
+        "434a04eb237e07d3d4146fc44acdbb411260a94fcb01764f454abe38a09503f3")]
+    [InlineData("linux-arm64", "cloudflared", "binary", 36982876, 36982876,
+        "a4c14d1dfb4ea1092da4b64ede05fab7092ba8a424c7df1e7747f5232a4127ff",
+        "a4c14d1dfb4ea1092da4b64ede05fab7092ba8a424c7df1e7747f5232a4127ff")]
     public void Catalog_MapsPinnedRuntimeAsset(
         string rid,
         string executableName,
@@ -46,7 +52,7 @@ public sealed class CloudflaredRuntimeAssetTests
     {
         Assert.Throws<PlatformNotSupportedException>(() => new CloudflaredAssetCatalog(
             ReadEmbeddedManifest(),
-            "linux-x64",
+            "linux-riscv64",
             NullLogger<CloudflaredAssetCatalog>.Instance));
     }
 

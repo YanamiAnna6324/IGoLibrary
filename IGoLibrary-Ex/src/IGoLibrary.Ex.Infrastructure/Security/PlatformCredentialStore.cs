@@ -17,6 +17,13 @@ public static class PlatformCredentialStore
             return new MacKeychainCredentialStore(changeTracker);
         }
 
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return new LinuxSecretServiceCredentialStore(
+                new LinuxSecretServiceClient(),
+                changeTracker);
+        }
+
         return new InMemoryCredentialStore(changeTracker);
     }
 }

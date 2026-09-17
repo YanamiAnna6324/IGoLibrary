@@ -177,7 +177,7 @@ public sealed class UpdateReleaseWindow : Window
             normalizedVersion = normalizedVersion[1..];
         }
 
-        return $"发现新版本 - 当前版本号 v{normalizedVersion}";
+        return $"IGoLibrary-Ex - v{normalizedVersion}";
     }
 
     internal static MarkdownScrollViewer CreateReleaseBodyViewer(string? body)

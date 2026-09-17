@@ -25,6 +25,7 @@ internal sealed class CloudflaredExtractor(
         if (asset.ArchiveType == "binary")
         {
             await CopyFileAsync(payloadPath, destinationPath, cancellationToken);
+            SetUnixExecutableMode(destinationPath);
             logger.LogInformation("cloudflared 原始二进制已复制到安装 staging。");
             return;
         }
@@ -87,19 +88,7 @@ internal sealed class CloudflaredExtractor(
             throw new InvalidDataException("cloudflared 压缩包包含意外的额外条目");
         }
 
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(
-                destinationPath,
-                UnixFileMode.UserRead |
-                UnixFileMode.UserWrite |
-                UnixFileMode.UserExecute |
-                UnixFileMode.GroupRead |
-                UnixFileMode.GroupExecute |
-                UnixFileMode.OtherRead |
-                UnixFileMode.OtherExecute);
-            logger.LogInformation("已为 cloudflared 设置 Unix 可执行权限。");
-        }
+        SetUnixExecutableMode(destinationPath);
     }
 
     private static async Task CopyFileAsync(
@@ -123,5 +112,24 @@ internal sealed class CloudflaredExtractor(
             FileOptions.Asynchronous | FileOptions.SequentialScan);
         await source.CopyToAsync(destination, cancellationToken);
         await destination.FlushAsync(cancellationToken);
+    }
+
+    private void SetUnixExecutableMode(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        File.SetUnixFileMode(
+            path,
+            UnixFileMode.UserRead |
+            UnixFileMode.UserWrite |
+            UnixFileMode.UserExecute |
+            UnixFileMode.GroupRead |
+            UnixFileMode.GroupExecute |
+            UnixFileMode.OtherRead |
+            UnixFileMode.OtherExecute);
+        logger.LogInformation("已为 cloudflared 设置 Unix 可执行权限。");
     }
 }

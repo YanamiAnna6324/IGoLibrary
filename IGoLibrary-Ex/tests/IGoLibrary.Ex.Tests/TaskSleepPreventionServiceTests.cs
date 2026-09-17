@@ -55,7 +55,11 @@ public sealed class TaskSleepPreventionServiceTests
         context.Grab.EmitStatus(CreateStatus(CoordinatorTaskState.Running, "抢座"));
 
         await context.Service.StartAsync(CancellationToken.None);
-        await WaitForAsync(() => context.Inhibitor.IsActive);
+        await WaitForAsync(() =>
+            context.Inhibitor.IsActive &&
+            context.ActivityLog.Entries.Any(
+                entry => entry.Category == "Power" &&
+                         entry.Message.Contains("抢座", StringComparison.Ordinal)));
 
         Assert.Equal(1, context.Inhibitor.ActivateCalls);
         Assert.Contains(
@@ -141,7 +145,11 @@ public sealed class TaskSleepPreventionServiceTests
         Assert.Equal(TimeSpan.FromSeconds(10), retryDelays.ElementAt(1));
 
         timeProvider.Advance(TimeSpan.FromSeconds(10));
-        await WaitForAsync(() => context.Inhibitor.IsActive);
+        await WaitForAsync(() =>
+            context.Inhibitor.IsActive &&
+            context.ActivityLog.Entries.Any(
+                entry => entry.Kind == LogEntryKind.Success &&
+                         entry.Message.Contains("恢复", StringComparison.Ordinal)));
 
         Assert.Equal(3, context.Inhibitor.ActivateCalls);
         Assert.Contains(

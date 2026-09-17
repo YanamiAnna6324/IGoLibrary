@@ -24,6 +24,22 @@
       "executableSize": 38388400,
       "executableSha256": "cd33944f6ce65e240942d986932bc96bde8641ecefcd52c1ae5dc21f0bcffb04",
       "archiveType": "tgz"
+    },
+    "linux-x64": {
+      "fileName": "cloudflared-linux-amd64",
+      "size": 39252488,
+      "sha256": "434a04eb237e07d3d4146fc44acdbb411260a94fcb01764f454abe38a09503f3",
+      "executableSize": 39252488,
+      "executableSha256": "434a04eb237e07d3d4146fc44acdbb411260a94fcb01764f454abe38a09503f3",
+      "archiveType": "binary"
+    },
+    "linux-arm64": {
+      "fileName": "cloudflared-linux-arm64",
+      "size": 36982876,
+      "sha256": "a4c14d1dfb4ea1092da4b64ede05fab7092ba8a424c7df1e7747f5232a4127ff",
+      "executableSize": 36982876,
+      "executableSha256": "a4c14d1dfb4ea1092da4b64ede05fab7092ba8a424c7df1e7747f5232a4127ff",
+      "archiveType": "binary"
     }
   }
 }

@@ -102,6 +102,11 @@ public sealed class PlatformBackupSecretStore : IBackupSecretStore
             return new MacBackupSecretBackend();
         }
 
+        if (OperatingSystem.IsLinux())
+        {
+            return new LinuxBackupSecretBackend(new LinuxSecretServiceClient());
+        }
+
         return new InMemoryBackupSecretBackend();
     }
 }
@@ -154,6 +159,21 @@ internal sealed class InMemoryBackupSecretBackend : IBackupSecretBackend
 
         return Task.CompletedTask;
     }
+}
+
+internal sealed class LinuxBackupSecretBackend(
+    ILinuxSecretServiceClient client) : IBackupSecretBackend
+{
+    public bool IsPersistent => client.IsAvailable;
+
+    public Task<string?> ReadAsync(string key, CancellationToken cancellationToken)
+        => client.LookupAsync(key, cancellationToken);
+
+    public Task WriteAsync(string key, string value, CancellationToken cancellationToken)
+        => client.StoreAsync(key, $"IGoLibrary-Ex {key}", value, cancellationToken);
+
+    public Task DeleteAsync(string key, CancellationToken cancellationToken)
+        => client.ClearAsync(key, cancellationToken);
 }
 
 internal sealed class WindowsBackupSecretBackend : IBackupSecretBackend

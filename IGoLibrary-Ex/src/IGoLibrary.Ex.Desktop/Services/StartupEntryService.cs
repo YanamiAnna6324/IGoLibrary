@@ -10,6 +10,7 @@ public sealed class StartupEntryService : IStartupEntryService
     private const string AppName = "IGoLibrary-Ex";
     private const string WindowsRunKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run";
     private const string MacLaunchAgentPlist = "com.IGoLibrary-Ex.plist";
+    private const string LinuxAutostartFileName = "igolibrary-ex.desktop";
     private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(10);
     private readonly ILogger<StartupEntryService> _logger;
 
@@ -18,7 +19,8 @@ public sealed class StartupEntryService : IStartupEntryService
         _logger = logger ?? NullLogger<StartupEntryService>.Instance;
     }
 
-    public bool IsSupported => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+    public bool IsSupported =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
 
     public Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default)
     {
@@ -35,6 +37,13 @@ public sealed class StartupEntryService : IStartupEntryService
         {
             var enabled = IsMacLaunchAgentEnabled();
             _logger.LogInformation("已查询开机启动状态。平台=macOS，已启用={Enabled}。", enabled);
+            return Task.FromResult(enabled);
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            var enabled = IsLinuxAutostartEntryEnabled();
+            _logger.LogInformation("已查询开机启动状态。平台=Linux，已启用={Enabled}。", enabled);
             return Task.FromResult(enabled);
         }
 
@@ -59,6 +68,13 @@ public sealed class StartupEntryService : IStartupEntryService
             return Task.CompletedTask;
         }
 
+        if (OperatingSystem.IsLinux())
+        {
+            EnableLinuxAutostartEntry();
+            _logger.LogInformation("开机启动已启用。平台=Linux。");
+            return Task.CompletedTask;
+        }
+
         return Task.CompletedTask;
     }
 
@@ -77,6 +93,13 @@ public sealed class StartupEntryService : IStartupEntryService
         {
             DisableMacLaunchAgent();
             _logger.LogInformation("开机启动已禁用。平台=macOS。");
+            return Task.CompletedTask;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            DisableLinuxAutostartEntry();
+            _logger.LogInformation("开机启动已禁用。平台=Linux。");
             return Task.CompletedTask;
         }
 
@@ -256,5 +279,109 @@ public sealed class StartupEntryService : IStartupEntryService
         builder.AppendLine("</dict>");
         builder.AppendLine("</plist>");
         return builder.ToString();
+    }
+
+    // XDG Autostart (.desktop file)
+
+    private static string GetLinuxAutostartPath()
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(userProfile))
+        {
+            userProfile = Environment.GetEnvironmentVariable("HOME") ?? string.Empty;
+        }
+
+        return ResolveLinuxAutostartPath(
+            Environment.GetEnvironmentVariable("XDG_CONFIG_HOME"),
+            userProfile);
+    }
+
+    internal static string ResolveLinuxAutostartPath(string? xdgConfigHome, string userProfile)
+    {
+        var configRoot = !string.IsNullOrWhiteSpace(xdgConfigHome) && Path.IsPathRooted(xdgConfigHome)
+            ? xdgConfigHome
+            : !string.IsNullOrWhiteSpace(userProfile)
+                ? Path.Combine(userProfile, ".config")
+                : throw new InvalidOperationException("无法确定当前用户的 Linux 配置目录");
+        return Path.Combine(configRoot, "autostart", LinuxAutostartFileName);
+    }
+
+    private static bool IsLinuxAutostartEntryEnabled()
+    {
+        var executablePath = GetExecutablePath();
+        var autostartPath = GetLinuxAutostartPath();
+        return executablePath is not null &&
+               File.Exists(autostartPath) &&
+               IsLinuxAutostartEntryForExecutable(
+                   File.ReadAllText(autostartPath),
+                   executablePath);
+    }
+
+    private static void EnableLinuxAutostartEntry()
+    {
+        var executablePath = GetExecutablePath()
+            ?? throw new InvalidOperationException("无法确定当前可执行文件路径");
+        var autostartPath = GetLinuxAutostartPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(autostartPath)!);
+        File.WriteAllText(
+            autostartPath,
+            BuildLinuxAutostartEntry(executablePath),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    }
+
+    private static void DisableLinuxAutostartEntry()
+    {
+        var autostartPath = GetLinuxAutostartPath();
+        if (File.Exists(autostartPath))
+        {
+            File.Delete(autostartPath);
+        }
+    }
+
+    internal static string BuildLinuxAutostartEntry(string executablePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
+        var normalizedPath = Path.GetFullPath(executablePath);
+        var exec = EscapeLinuxDesktopExecArgument(normalizedPath);
+        return string.Join(
+            '\n',
+            "[Desktop Entry]",
+            "Type=Application",
+            "Version=1.0",
+            $"Name={AppName}",
+            $"Exec={exec}",
+            "Terminal=false",
+            "StartupNotify=false",
+            "X-GNOME-Autostart-enabled=true",
+            string.Empty);
+    }
+
+    internal static bool IsLinuxAutostartEntryForExecutable(
+        string desktopEntry,
+        string executablePath)
+    {
+        ArgumentNullException.ThrowIfNull(desktopEntry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
+        var directives = desktopEntry
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Split('\n')
+            .Select(line => line.Trim())
+            .ToHashSet(StringComparer.Ordinal);
+        var expectedExec = "Exec=" + EscapeLinuxDesktopExecArgument(Path.GetFullPath(executablePath));
+        return directives.Contains("[Desktop Entry]") &&
+               directives.Contains("Type=Application") &&
+               directives.Contains(expectedExec) &&
+               !directives.Contains("Hidden=true");
+    }
+
+    internal static string EscapeLinuxDesktopExecArgument(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return '"' + value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("`", "\\`", StringComparison.Ordinal)
+            .Replace("$", "\\$", StringComparison.Ordinal)
+            .Replace("%", "%%", StringComparison.Ordinal) + '"';
     }
 }
