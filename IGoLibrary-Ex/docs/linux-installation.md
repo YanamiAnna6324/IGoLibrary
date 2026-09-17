@@ -8,6 +8,25 @@
 
 发布包包含 .NET 运行时，不需要另外安装 .NET SDK 或 Runtime。
 
+## 从源码启动
+
+已经安装 .NET SDK 10 和 GNU Make 时，在 `IGoLibrary-Ex` 目录运行：
+
+```bash
+make run
+```
+
+Makefile 会从 `PATH` 或 `~/.dotnet/dotnet` 查找 SDK。其他常用命令：
+
+```bash
+make run-debug
+make test
+make publish
+make release
+```
+
+`make publish` 根据当前 CPU 架构生成一个包；`make release` 同时生成 `linux-x64` 和 `linux-arm64` 包。
+
 ## 系统依赖
 
 应用使用系统的 Secret Service 安全保存 Cookie 和密码，并使用 `systemd-inhibit` 在任务运行时阻止系统休眠。
