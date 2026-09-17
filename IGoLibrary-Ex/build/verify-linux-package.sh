@@ -68,6 +68,10 @@ EXECUTABLE="$PACKAGE_ROOT/IGoLibrary.Ex.Desktop"
 [[ -f "$PACKAGE_ROOT/README-LINUX.md" ]] || { echo "Linux installation guide is missing." >&2; exit 1; }
 [[ -f "$PACKAGE_ROOT/licenses/cloudflared-LICENSE.txt" ]] || { echo "cloudflared license is missing." >&2; exit 1; }
 [[ -f "$PACKAGE_ROOT/licenses/THIRD-PARTY-NOTICES.txt" ]] || { echo "third-party notices are missing." >&2; exit 1; }
+[[ -x "$PACKAGE_ROOT/install-windows-launcher.sh" ]] || { echo "WSL Windows launcher installer is missing or not executable." >&2; exit 1; }
+[[ -f "$PACKAGE_ROOT/scripts/install-windows-wsl-launcher.ps1" ]] || { echo "WSL Windows launcher PowerShell installer is missing." >&2; exit 1; }
+[[ -f "$PACKAGE_ROOT/icons/IGoLibrary-Ex.ico" ]] || { echo "Windows launcher icon is missing." >&2; exit 1; }
+[[ "$(tr -d '\r\n' < "$PACKAGE_ROOT/VERSION")" == "$APP_VERSION" ]] || { echo "Package version marker is missing or invalid." >&2; exit 1; }
 
 EXECUTABLE_DESCRIPTION="$(file -b "$EXECUTABLE")"
 case "$RUNTIME" in

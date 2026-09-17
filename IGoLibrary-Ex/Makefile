@@ -13,11 +13,12 @@ RELEASE_TAG ?= linux-v$(VERSION)
 RELEASE_TITLE ?= IGoLibrary-Ex Linux v$(VERSION)
 RELEASE_FLAGS ?= --prerelease
 RELEASE_NOTES ?= docs/linux-release-notes.md
+WSL_DISTRIBUTION ?= $(WSL_DISTRO_NAME)
 
 DOTNET_DIRECTORY := $(patsubst %/,%,$(dir $(DOTNET)))
 export PATH := $(DOTNET_DIRECTORY):$(PATH)
 
-.PHONY: help check-dotnet check-runtime check-gh check-repo run run-debug test publish release verify github-release
+.PHONY: help check-dotnet check-runtime check-gh check-repo check-wsl run run-debug test publish release verify windows-install windows-uninstall github-release
 
 help:
 	@echo "IGoLibrary-Ex Linux commands"
@@ -28,6 +29,10 @@ help:
 	@echo "  make publish      Build the package for this machine ($(RUNTIME))"
 	@echo "  make release      Build linux-x64 and linux-arm64 packages"
 	@echo "  make verify       Verify both existing release packages"
+	@echo "  make windows-install"
+	@echo "                    Add a Windows Start menu entry for this WSLg app"
+	@echo "  make windows-uninstall"
+	@echo "                    Remove the Windows launcher registration"
 	@echo "  make github-release REPO=owner/repository"
 	@echo "                    Build and upload a GitHub prerelease"
 	@echo
@@ -55,6 +60,13 @@ check-repo:
 		exit 1; \
 	fi
 
+check-wsl:
+	@if [[ -z "$(WSL_DISTRIBUTION)" ]]; then \
+		echo "This command must run inside WSL or WSL_DISTRIBUTION must be set." >&2; \
+		exit 1; \
+	fi
+	@command -v powershell.exe >/dev/null 2>&1 || { echo "Windows PowerShell interop is unavailable." >&2; exit 1; }
+
 run: check-dotnet
 	"$(DOTNET)" run --project "$(PROJECT)" --configuration "$(CONFIGURATION)"
 
@@ -78,6 +90,16 @@ verify:
 	./build/verify-linux-package.sh \
 		"artifacts/linux/linux-arm64/IGoLibrary-Ex-v$(VERSION)-linux-arm64.tar.gz" \
 		linux-arm64 "$(VERSION)"
+
+windows-install: check-wsl publish
+	WSL_DISTRO_NAME="$(WSL_DISTRIBUTION)" ./build/install-windows-wsl-launcher.sh \
+		"$(abspath artifacts/publish/$(RUNTIME)/IGoLibrary.Ex.Desktop)" \
+		"$(VERSION)"
+
+windows-uninstall: check-wsl
+	powershell.exe -NoProfile -ExecutionPolicy Bypass \
+		-File "$$(wslpath -w build/install-windows-wsl-launcher.ps1)" \
+		-Uninstall
 
 github-release: check-gh check-repo release
 	gh release create "$(RELEASE_TAG)" \

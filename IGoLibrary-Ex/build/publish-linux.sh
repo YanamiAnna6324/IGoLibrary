@@ -71,7 +71,13 @@ cp "$ROOT/docs/linux-installation.md" "$PACKAGE_ROOT/README-LINUX.md"
 mkdir -p "$PACKAGE_ROOT/licenses"
 cp "$ROOT/build/third-party/cloudflared-LICENSE.txt" "$PACKAGE_ROOT/licenses/cloudflared-LICENSE.txt"
 cp "$ROOT/build/third-party/THIRD-PARTY-NOTICES.txt" "$PACKAGE_ROOT/licenses/THIRD-PARTY-NOTICES.txt"
+mkdir -p "$PACKAGE_ROOT/scripts" "$PACKAGE_ROOT/icons"
+cp "$ROOT/build/install-windows-wsl-launcher.sh" "$PACKAGE_ROOT/install-windows-launcher.sh"
+cp "$ROOT/build/install-windows-wsl-launcher.ps1" "$PACKAGE_ROOT/scripts/install-windows-wsl-launcher.ps1"
+cp "$ROOT/src/IGoLibrary.Ex.Desktop/Assets/main.ico" "$PACKAGE_ROOT/icons/IGoLibrary-Ex.ico"
+printf '%s\n' "$APP_VERSION" > "$PACKAGE_ROOT/VERSION"
 chmod 0755 "$PACKAGE_ROOT/IGoLibrary.Ex.Desktop"
+chmod 0755 "$PACKAGE_ROOT/install-windows-launcher.sh"
 if [[ -f "$PACKAGE_ROOT/tools/cloudflared/cloudflared" ]]; then
   chmod 0755 "$PACKAGE_ROOT/tools/cloudflared/cloudflared"
 fi

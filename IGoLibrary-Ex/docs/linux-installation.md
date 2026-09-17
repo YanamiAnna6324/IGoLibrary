@@ -27,6 +27,30 @@ make release
 
 `make publish` 根据当前 CPU 架构生成一个包；`make release` 同时生成 `linux-x64` 和 `linux-arm64` 包。
 
+## 注册到 Windows
+
+在 WSLg 中运行本项目时，可以把 Linux 应用注册到当前 Windows 用户：
+
+```bash
+make windows-install
+```
+
+安装完成后，可以从 Windows 开始菜单打开 `IGoLibrary-Ex (WSL)`，也可以按 `Win+R` 输入：
+
+```text
+igolibrary-ex:
+```
+
+该入口通过 `wsl.exe` 启动当前 WSL 发行版中的 Linux 程序，不会把 Linux 程序转换为 Windows 原生程序。注册信息写入 `HKEY_CURRENT_USER`，无需管理员权限。请勿在注册后移动或删除对应的 Linux 程序目录；移动后重新执行安装命令即可更新路径。
+
+从源码目录卸载：
+
+```bash
+make windows-uninstall
+```
+
+也可以在 Windows 的“设置 > 应用 > 已安装的应用”中卸载 `IGoLibrary-Ex (WSL)`。
+
 ## 系统依赖
 
 应用使用系统的 Secret Service 安全保存 Cookie 和密码，并使用 `systemd-inhibit` 在任务运行时阻止系统休眠。
@@ -53,6 +77,12 @@ sudo apt install libsecret-1-0 gnome-keyring libx11-6 libice6 libsm6 libfontconf
 tar -xzf IGoLibrary-Ex-vVERSION-linux-x64.tar.gz
 cd IGoLibrary-Ex
 ./IGoLibrary.Ex.Desktop
+```
+
+如果解压位置位于 WSL 文件系统，还可以执行以下命令安装 Windows 启动入口：
+
+```bash
+./install-windows-launcher.sh
 ```
 
 发布包已经包含执行权限。如果复制过程丢失了权限，可以重新设置：

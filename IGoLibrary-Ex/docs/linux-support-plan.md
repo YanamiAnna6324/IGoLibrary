@@ -211,6 +211,28 @@ Avalonia 原先全局使用 Inter。Inter 不包含中文字形，在部分 Linu
 - `tests/IGoLibrary.Ex.Tests/UpdateReleaseWindowTests.cs`
 - `docs/linux-installation.md`
 
+### 3.9 WSLg 的 Windows 启动入口
+
+Windows 不能直接执行 Linux ELF。WSLg 用户可以从 Linux 包安装一个当前用户级 Windows 启动入口，由 `wsl.exe` 转发到对应发行版中的 Linux 程序。
+
+修改内容：
+
+- 注册 `HKEY_CURRENT_USER\Software\Classes\igolibrary-ex` URL 协议，可通过 `Win+R` 输入 `igolibrary-ex:` 启动。
+- 创建 Windows 开始菜单快捷方式 `IGoLibrary-Ex (WSL)`。
+- 在 Windows“已安装的应用”中登记卸载项。
+- 注册项只保存发行版名称和 Linux 可执行文件路径，不复制 Cookie、密码或其他应用数据到 Windows。
+- 所有注册项均位于当前用户范围，无需管理员权限。
+- Linux 发布包包含安装脚本、卸载脚本所需文件和 Windows 图标。
+
+涉及文件：
+
+- `build/install-windows-wsl-launcher.sh`
+- `build/install-windows-wsl-launcher.ps1`
+- `build/publish-linux.sh`
+- `build/verify-linux-package.sh`
+- `Makefile`
+- `docs/linux-installation.md`
+
 ## 4. 实施顺序
 
 ### 阶段一：Linux 最小可运行版本
@@ -312,5 +334,6 @@ Avalonia 原先全局使用 Inter。Inter 不包含中文字形，在部分 Linu
 - `linux-x64` 和 `linux-arm64` 自包含包均已生成并通过校验。
 - `linux-x64` 已在 WSLg/X11 环境完成启动冒烟测试；无 Secret Service 时仍能进入主界面并完成初始化。
 - `linux-x64` 已完成发布包界面截图检查，首页、侧栏、日期和状态说明中的中文均能正常显示。
+- WSLg 的 Windows URL 协议、开始菜单快捷方式、卸载项以及实际跨系统启动均已验证。
 
 仍需在实际发行前完成 GNOME/KDE、原生 X11/Wayland、ARM64 真机和托盘行为验证。
